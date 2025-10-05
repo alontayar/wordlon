@@ -7,9 +7,9 @@
 <meta name="theme-color" content="#0b0c0f">
 <title>וורדלון</title>
 <style>
-  @font-face{font-family:'Normal093';src:url('assets/fonts/Normal0.93-Regular.woff') format('woff');font-weight:400;font-style:normal;font-display:swap}
-  @font-face{font-family:'Normal093';src:url('assets/fonts/Normal0.93-Medium.woff') format('woff');font-weight:500;font-style:normal;font-display:swap}
-  @font-face{font-family:'Normal093';src:url('assets/fonts/Normal0.93-Bold.woff') format('woff');font-weight:700;font-style:normal;font-display:swap}
+  @font-face{font-family:'Normal093';src:url('Normal0.93-Regular.woff') format('woff');font-weight:400;font-style:normal;font-display:swap}
+  @font-face{font-family:'Normal093';src:url('Normal0.93-Medium.woff') format('woff');font-weight:500;font-style:normal;font-display:swap}
+  @font-face{font-family:'Normal093';src:url('Normal0.93-Bold.woff') format('woff');font-weight:700;font-style:normal;font-display:swap}
 
   :root{
     --bg:#0b0c0f; --panel:#0f1218; --fg:#e7ecf3; --muted:#9aa8b8;
@@ -156,6 +156,7 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 
 let WORDS=[];
 fetch('words-5-clean.txt').then(r=>r.text()).then(t=>{ WORDS = t.split(/[
+
 ]+/).map(x=>x.trim()).filter(Boolean); init(); });
 
 function isValidWord(w){ return /^[א-תךםןףץ]+$/.test(w) && WORDS.includes(w); }
