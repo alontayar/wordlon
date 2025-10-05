@@ -181,8 +181,8 @@ ready(()=>{
     .map(s => (''+s).trim())
     .filter(s => /^[א-תךםןףץ]{5}$/.test(s));
 
-  showDebug(`ALLOWED: ${ALLOWED.size} | ANSWERS5: ${ANSWERS5.length}`);
-
+  //showDebug(`ALLOWED: ${ALLOWED.size} | ANSWERS5: ${ANSWERS5.length}`);
+  
   if (ANSWERS5.length === 0){ ANSWERS5.push('שלום'); }
   if (ALLOWED.size === 0){
     ['שלום','חלום','חלון','עולם','בדיקה','אולפן','תמונה'].forEach(w=>ALLOWED.add(norm(w)));
