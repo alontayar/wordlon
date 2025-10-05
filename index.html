@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>וורדלון</title>
+  <style>
+    body { background:#0b0c0f; color:#fff; font-family:"Normal0.93-Medium",sans-serif; text-align:center; }
+    h1 { font-weight:500; }
+    #keyboard { margin:20px auto; display:flex; flex-direction:column; gap:8px; max-width:700px; }
+    .row { display:flex; gap:6px; justify-content:center; }
+    button.key { flex:1; height:72px; font-size:28px; font-weight:500; border:none; border-radius:6px;
+      background:#8c969f; color:#f4f7fb; cursor:pointer; }
+    button.key.used { background:#5b6671; }
+    .message { position:fixed; top:40px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.85); 
+      padding:16px 24px; border-radius:8px; font-size:22px; }
+  </style>
+</head>
+<body>
+  <h1>וורדלון</h1>
+  <div id="msg" class="message" style="display:none"></div>
+  <div id="keyboard"></div>
+  <script>
+    const rows = [
+      ["ק","ר","א","ט","ו","פ","Backspace"],
+      ["ש","ד","ג","כ","ע","י","ח","ל"],
+      ["ז","ס","ב","ה","נ","מ","צ","ת","Enter"]
+    ];
+    const kb = document.getElementById("keyboard");
+    rows.forEach(r=>{
+      const div=document.createElement("div");div.className="row";
+      r.forEach(k=>{const b=document.createElement("button");b.className="key";b.textContent=(k==="Backspace"?"⌫":k==="Enter"?"↵":k);
+        b.dataset.key=k;div.appendChild(b);});kb.appendChild(div);
+    });
+    kb.addEventListener("click",e=>{
+      if(e.target.classList.contains("key")){
+        e.target.classList.add("used");
+      }
+    });
+    function showWinMessage(tries){
+      const msgs=["שיו","וואו","מדהים","מעולה","מושלם","ניצלת ברגע האחרון"];
+      document.getElementById("msg").textContent=msgs[tries-1]||"";
+      document.getElementById("msg").style.display="block";
+      setTimeout(()=>document.getElementById("msg").style.display="none",2000);
+    }
+    // demo: show message for 3rd try
+    setTimeout(()=>showWinMessage(3),1000);
+  </script>
+</body>
+</html>
