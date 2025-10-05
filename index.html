@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b0c0f">
+<title>Wordlon</title>
+<style>
+  @font-face{font-family:'Normal093';src:url('assets/fonts/Normal0.93-Regular.woff') format('woff');font-weight:400;font-style:normal;font-display:swap}
+  @font-face{font-family:'Normal093';src:url('assets/fonts/Normal0.93-Medium.woff') format('woff');font-weight:500;font-style:normal;font-display:swap}
+  @font-face{font-family:'Normal093';src:url('assets/fonts/Normal0.93-Bold.woff') format('woff');font-weight:700;font-style:normal;font-display:swap}
+
+  :root{
+    --bg:#0b0c0f; --panel:#0f1218; --fg:#e7ecf3; --muted:#9aa8b8;
+    --tile:#111723; --tile-border:#1e2633; --miss:#2a3342; --near:#f7b633; --hit:#22c55e;
+    --key:#1b2230; --key-fg:#e7ecf3; --ring:#2d384a; --accent:#6ea8fe;
+  }
+  [data-theme="light"]{
+    --bg:#ffffff; --panel:#f7f7f8; --fg:#0f172a; --muted:#64748b;
+    --tile:#e9eef5; --tile-border:#cbd5e1; --miss:#cbd5e1; --near:#f59e0b; --hit:#22c55e;
+    --key:#e5e7eb; --key-fg:#0f172a; --ring:#d1d5db; --accent:#2563eb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--fg); font:16px/1.45 "Normal093",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
+  header{position:sticky; top:0; z-index:10; background:var(--panel); border-bottom:1px solid var(--ring); backdrop-filter:saturate(120%) blur(6px)}
+  .bar{max-width:920px; margin:0 auto; padding:12px 14px; display:flex; gap:12px; align-items:center; justify-content:space-between}
+  nav[role="tablist"]{display:flex; gap:8px; order:-1}
+  .tab{border:1px solid var(--ring); background:transparent; color:var(--fg); padding:8px 12px; border-radius:12px; cursor:pointer; transition:transform .06s ease, background .2s}
+  .tab[aria-selected="true"]{background:var(--fg); color:var(--bg)}
+  .btn{border:1px solid var(--ring); background:transparent; color:var(--fg); padding:8px 12px; border-radius:12px; cursor:pointer}
+  .ghost{background:transparent}
+  h1{font-size:18px; margin:0; letter-spacing:.4px}
+  main{max-width:920px; margin:0 auto; padding:20px 14px 40px}
+  .section{display:none}
+  .section[aria-hidden="false"]{display:block}
+  .grid{display:grid; gap:8px; margin:22px auto; justify-content:center}
+  .row{display:grid; grid-template-columns:repeat(var(--len),min(64px,13.2vw)); gap:8px}
+  .tile{display:flex; align-items:center; justify-content:center; border:2px solid var(--tile-border); background:var(--tile);
+        font-weight:700; font-size:min(42px,9.2vw); aspect-ratio:1; border-radius:10px; text-transform:uppercase;
+        transform-style:preserve-3d; backface-visibility:hidden; box-shadow:0 2px 0 rgba(0,0,0,.2)}
+  .tile.filled{border-color:#8091a7}
+  .tile.hit{background:var(--hit); color:#fff; border-color:var(--hit)}
+  .tile.near{background:var(--near); color:#fff; border-color:var(--near)}
+  .tile.miss{background:var(--miss); color:#a8b3c2; border-color:var(--miss)}
+  .kbd{display:grid; gap:10px; justify-content:center; margin:20px auto; width:100%}
+  .kbd-row{display:flex; gap:8px; justify-content:center; flex-wrap:wrap}
+  button.key{padding:12px 10px; min-width:34px; border:1px solid var(--ring); border-radius:10px; background:var(--key); color:var(--key-fg); cursor:pointer; font-weight:600; transition:transform .06s ease, background .2s, border-color .2s}
+  button.key:active{transform:scale(0.98)}
+  button.key[data-state="hit"]{background:var(--hit); color:#fff; border-color:var(--hit)}
+  button.key[data-state="near"]{background:var(--near); color:#fff; border-color:var(--near)}
+  button.key[data-state="miss"]{background:#2c3444; color:#7d8796; border-color:#2c3444}
+  .wide{min-width:72px}
+  .toast{position:fixed; left:50%; transform:translateX(-50%); top:72px; background:#0f172a; color:#fff; padding:10px 14px; border-radius:10px; opacity:0; transition:opacity .2s; pointer-events:none; border:1px solid var(--ring)}
+  .toast.show{opacity:1}
+  .share{display:flex; gap:8px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:12px}
+  .share a, .share button{border:1px solid var(--ring); background:transparent; color:var(--fg); padding:8px 12px; border-radius:10px; text-decoration:none; cursor:pointer}
+  dialog{border:1px solid var(--ring); border-radius:14px; padding:0; background:var(--panel); color:var(--fg); max-width:520px}
+  .dlg-h{padding:14px; border-bottom:1px solid var(--ring); display:flex; justify-content:space-between; align-items:center}
+  .dlg-b{padding:16px}
+  .stats{display:flex; gap:16px; justify-content:space-around; text-align:center}
+  .stat b{display:block; font-size:32px}
+  footer{margin:24px 0 36px; text-align:center; color:var(--muted); font-size:12px}
+
+  @keyframes pop { 0%{transform:scale(0.9)} 40%{transform:scale(1.1)} 100%{transform:scale(1)} }
+  @keyframes shake { 10%,90%{transform:translateX( -2px)} 20%,80%{transform:translateX( 4px)} 30%,50%,70%{transform:translateX(-6px)} 40%,60%{transform:translateX(6px)} }
+  @keyframes flipIn { 0%{transform:rotateX(0)} 49%{transform:rotateX(90deg)} 50%{transform:rotateX(-90deg)} 100%{transform:rotateX(0)} }
+  @keyframes bounce { 0%,20%,50%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-8px)} 60%{transform:translateY(-4px)} }
+  .tile.pop{animation:pop .12s ease}
+  .row.shake{animation:shake .4s ease}
+  .tile.flip{animation:flipIn .6s ease; transform-origin:center}
+  .row.win .tile{animation:bounce .6s ease; animation-delay: calc(var(--i) * 40ms)}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <nav role="tablist" aria-label="מצבים">
+      <button class="tab" id="tabDaily" role="tab" aria-selected="true" data-target="daily">Wordlon היומי</button>
+      <button class="tab" id="tabCustom" role="tab" aria-selected="false" data-target="custom">התאמה אישית</button>
+    </nav>
+    <h1>Wordlon</h1>
+    <div style="display:flex; gap:8px; align-items:center">
+      <button id="btnStats" class="btn ghost" title="סטטיסטיקות">📊</button>
+      <button id="btnTheme" class="btn ghost" title="מצב כהה"><span style="font-size:18px;line-height:1">☾</span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="daily" class="section" aria-hidden="false">
+    <div id="dailyBoard" class="grid"></div>
+    <div id="dailyKbd" class="kbd" aria-label="מקלדת וירטואלית"></div>
+    <div class="share" id="dailyShare"></div>
+    <div id="countdown" style="text-align:center; color:var(--muted); margin-top:6px"></div>
+  </section>
+
+  <section id="custom" class="section" aria-hidden="true">
+    <div style="display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap">
+      <input id="secretInput" dir="rtl" inputmode="text" maxlength="10" placeholder="מילה (3–10)" style="padding:10px 12px; border-radius:10px; border:1px solid var(--ring); background:var(--panel); color:var(--fg)">
+      <button id="makeLink" class="btn">קישור</button>
+    </div>
+    <div id="linkOut" class="share"></div>
+    <hr style="margin:22px 0; opacity:0.2">
+    <div id="customBoard" class="grid"></div>
+    <div id="customKbd" class="kbd" aria-label="מקלדת וירטואלית"></div>
+  </section>
+</main>
+
+<footer>
+  <span>&copy; אלון תייר <span id="year">2025</span></span>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="dlgStats">
+  <div class="dlg-h">
+    <strong>סטטיסטיקות</strong>
+    <button class="btn ghost" id="dlgClose">✖</button>
+  </div>
+  <div class="dlg-b">
+    <div class="stats">
+      <div class="stat"><b id="stPlayed">0</b>משחקים</div>
+      <div class="stat"><b id="stWin">0</b>ניצחונות</div>
+      <div class="stat"><b id="stStreak">0</b>רצף</div>
+      <div class="stat"><b id="stBest">0</b>שיא רצף</div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+if ('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js?v=2'); }
+(function(){ const saved = localStorage.getItem('theme'); if (saved==='light') document.documentElement.setAttribute('data-theme','light'); })();
+document.getElementById('btnTheme').addEventListener('click', ()=>{
+  const root = document.documentElement;
+  const isLight = root.getAttribute('data-theme')==='light';
+  root.setAttribute('data-theme', isLight ? '' : 'light');
+  localStorage.setItem('theme', isLight ? '' : 'light');
+});
+
+const tz='Asia/Jerusalem';
+const E = (id)=>document.getElementById(id);
+const finalsMap={'ך':'כ','ם':'מ','ן':'נ','ף':'פ','ץ':'צ'};
+const normalizeHeb = s=>s.replace(/\s+/g,'').replace(/[״"]/g,'').trim();
+const mapFinals = ch => finalsMap[ch] || ch;
+const lettersEqual = (a,b)=> mapFinals(a)===mapFinals(b);
+const baseURL = location.origin + location.pathname;
+
+function toLocalDateStr(date=new Date()){
+  const parts = new Intl.DateTimeFormat('he-IL',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+  const y = parts.find(p=>p.type==='year').value.padStart(4,'0');
+  const m = parts.find(p=>p.type==='month').value.padStart(2,'0');
+  const d = parts.find(p=>p.type==='day').value.padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1200); }
+
+let WORDS=[];
+fetch('words-5-clean.txt').then(r=>r.text()).then(t=>{ WORDS = t.split(/[
+]+/).map(x=>x.trim()).filter(Boolean); init(); });
+
+function isValidWord(w){ return /^[א-תךםןףץ]+$/.test(w) && WORDS.includes(w); }
+
+const statsKey='wordlon.stats';
+function loadStats(){ try{ return JSON.parse(localStorage.getItem(statsKey)) || {played:0,wins:0,streak:0,best:0,lastDate:''}; } catch(e){ return {played:0,wins:0,streak:0,best:0,lastDate:''}; } }
+function saveStats(s){ localStorage.setItem(statsKey, JSON.stringify(s)); }
+function updateStatsUI(){ const s=loadStats(); E('stPlayed').textContent=s.played; E('stWin').textContent=s.wins; E('stStreak').textContent=s.streak; E('stBest').textContent=s.best; }
+document.getElementById('btnStats').addEventListener('click', ()=>{ updateStatsUI(); E('dlgStats').showModal(); });
+document.getElementById('dlgClose').addEventListener('click', ()=>dlgStats.close());
+
+function dailyCandidates(){ return WORDS.filter(w=>/^[א-תךםןףץ]{5}$/.test(w)); }
+function seededIndex(dateStr,len){ let h=0; for (let i=0;i<dateStr.length;i++){ h=((h<<5)-h)+dateStr.charCodeAt(i); h|=0; } return Math.abs(h)%len; }
+function getDailyAnswer(dateStr){ const A=dailyCandidates(); return A.length? A[seededIndex(dateStr,A.length)] : (A[0]||'שלום'); }
+
+const rowsCount = 6;
+const hebRows = [['ק','ר','א','ט','ו','ן','ם','פ'],['ש','ד','ג','כ','ע','י','ח','ל','ך','ף'],['ז','ס','ב','ה','נ','מ','צ','ת','ץ']];
+
+function buildBoard(container,len=5,rows=rowsCount){
+  const grid = container;
+  grid.style.setProperty('--len', len);
+  grid.innerHTML='';
+  for (let r=0;r<rows;r++){
+    const row=document.createElement('div'); row.className='row';
+    for (let c=0;c<len;c++){
+      const t=document.createElement('div'); t.className='tile'; t.dataset.row=r; t.dataset.col=c; t.style.setProperty('--i', c);
+      row.appendChild(t);
+    }
+    grid.appendChild(row);
+  }
+  return grid;
+}
+function buildKeyboard(container,onKey){
+  const kbd=container; kbd.innerHTML='';
+  hebRows.forEach((row,ri)=>{
+    const R=document.createElement('div'); R.className='kbd-row';
+    row.forEach(ch=>{ const b=document.createElement('button'); b.className='key'; b.textContent=ch; b.onclick=()=>onKey(ch); R.appendChild(b); });
+    if (ri===2){
+      const enter=document.createElement('button'); enter.className='key wide'; enter.textContent='שליחה'; enter.onclick=()=>onKey('ENTER'); R.prepend(enter);
+      const bk=document.createElement('button'); bk.className='key wide'; bk.textContent='⌫'; bk.onclick=()=>onKey('BACK'); R.appendChild(bk);
+    }
+    kbd.appendChild(R);
+  });
+  return kbd;
+}
+function scoreGuess(guess,answer){
+  const n=answer.length, res=Array(n).fill('miss'), ans=answer.split(''), g=guess.split('');
+  for (let i=0;i<n;i++){ if (lettersEqual(g[i],ans[i])){ res[i]='hit'; ans[i]=null; g[i]=null; } }
+  for (let i=0;i<n;i++){ if (g[i]==null) continue; const idx=ans.findIndex(ch=>ch && lettersEqual(ch,g[i])); if (idx>-1){ res[i]='near'; ans[idx]=null; } }
+  return res;
+}
+function Game({boardEl,kbdEl,answer,mode='daily',shareEl,onWinLose}){
+  const len=answer.length; let curRow=0, curCol=0, done=false;
+  const grid=buildBoard(boardEl,len); const kbd=buildKeyboard(kbdEl, handleKey);
+  const tiles=Array.from({length:rowsCount},()=>Array(len).fill('')); const keyStates={};
+  const tileAt=(r,c)=>grid.children[r].children[c];
+  function updateTiles(popIndex=null){
+    for (let c=0;c<len;c++){
+      const t=tileAt(curRow,c); t.textContent=tiles[curRow][c]||'';
+      t.classList.toggle('filled', !!tiles[curRow][c]);
+      if (popIndex===c){ t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop'); }
+    }
+  }
+  function paintKeys(){
+    for (const [ch,state] of Object.entries(keyStates)){
+      [...kbdEl.querySelectorAll('.key')].filter(b=>b.textContent===ch).forEach(b=>b.dataset.state=state);
+    }
+  }
+  function revealRow(marks){
+    const rEl = grid.children[curRow];
+    [...rEl.children].forEach((t,i)=>{
+      setTimeout(()=>{
+        t.classList.add('flip');
+        setTimeout(()=>{
+          t.classList.remove('flip');
+          t.classList.remove('filled');
+          t.classList.remove('hit','near','miss');
+          t.classList.add(marks[i]);
+        }, 300);
+      }, i*280);
+    });
+  }
+  function commitGuess(){
+    const guess = tiles[curRow].join('');
+    if (guess.length!==len){ rowShake(); toast('לא מספיק אותיות'); return; }
+    if (!/^[א-תךםןףץ]+$/.test(guess)){ rowShake(); toast('רק אותיות עבריות'); return; }
+    if (mode==='daily' && !isValidWord(guess)){ rowShake(); toast('מילה לא מוכרת'); return; }
+    const marks=scoreGuess(guess,answer);
+    revealRow(marks);
+    setTimeout(()=>{
+      guess.split('').forEach((ch,i)=>{
+        const m=marks[i]; const prev=keyStates[ch]; const rank={miss:0,near:1,hit:2};
+        if (!prev || rank[m]>rank[prev]) keyStates[ch]=m;
+      });
+      paintKeys();
+      const win = marks.every(m=>'hit'===m);
+      curRow++; curCol=0;
+      if (win){ winBounce(curRow-1); done=true; shareSummary(true); onWinLose && onWinLose(true,curRow); return; }
+      if (curRow>=rowsCount){ toast('המילה הייתה: '+answer); done=true; shareSummary(false); onWinLose && onWinLose(false,curRow); return; }
+    }, len*280 + 320);
+  }
+  function shareSummary(won){
+    if (!shareEl) return;
+    const emoji = buildEmojiSummary(curRow-1);
+    const text = (mode==='daily' ? `Wordlon — ${won?'ניצחון':'הפסד'}
+` : `Wordlon מותאם — ${won?'ניצחון':'הפסד'}
+`) + emoji;
+    shareEl.innerHTML='';
+    const btnCopy=document.createElement('button'); btnCopy.className='btn'; btnCopy.textContent='העתק תוצאה';
+    btnCopy.onclick=async()=>{ try{ await navigator.clipboard.writeText(text); toast('הועתק'); }catch(e){ toast('לא הצלחתי להעתיק'); } };
+    shareEl.appendChild(btnCopy);
+  }
+  function buildEmojiSummary(lastRow){
+    let out='';
+    for (let r=0;r<=lastRow;r++){
+      for (let c=0;c<len;c++){
+        const t=grid.children[r].children[c];
+        out += t.classList.contains('hit')?'🟩': t.classList.contains('near')?'🟨':'⬜';
+      }
+      out+='
+';
+    }
+    return out.trim();
+  }
+  function rowShake(){ const row=grid.children[curRow]; row.classList.remove('shake'); void row.offsetWidth; row.classList.add('shake'); }
+  function winBounce(r){ const row=grid.children[r]; row.classList.add('win'); }
+  function handleKey(k){
+    if (done) return;
+    if (k==='ENTER') return commitGuess();
+    if (k==='BACK'){ if (curCol>0){ curCol--; tiles[curRow][curCol]=''; updateTiles(); } return; }
+    if (k.length===1){
+      if (curCol>=len) return;
+      if (!/[א-תךםןףץ]/.test(k)) return;
+      tiles[curRow][curCol]=k; updateTiles(curCol); curCol++;
+    }
+  }
+  window.addEventListener('keydown', ev=>{
+    const k=ev.key;
+    if (k==='Enter') return handleKey('ENTER');
+    if (k==='Backspace') return handleKey('BACK');
+    if (/^[א-ת]$/.test(k)) return handleKey(k);
+  });
+  return {handleKey};
+}
+
+let currentDateStr, dailyAnswer, dailyGame;
+function initDaily(){
+  currentDateStr = toLocalDateStr();
+  dailyAnswer = getDailyAnswer(currentDateStr);
+  dailyGame = Game({boardEl: E('dailyBoard'), kbdEl: E('dailyKbd'), answer:dailyAnswer, mode:'daily', shareEl:dailyShare, onWinLose:onDailyEnd});
+  updateCountdown();
+}
+function onDailyEnd(win){
+  const s=loadStats();
+  if (s.lastDate!==currentDateStr){
+    s.played+=1; s.lastDate=currentDateStr;
+    if (win){ s.wins+=1; s.streak+=1; s.best=Math.max(s.best,s.streak); } else { s.streak=0; }
+    saveStats(s);
+  }
+  updateStatsUI();
+}
+function updateCountdown(){
+  const now=new Date(); const nowStr=toLocalDateStr(now);
+  if (nowStr!==currentDateStr){ initDaily(); return; }
+  const midnight=new Date(); midnight.setHours(24,0,0,0);
+  const diff=midnight-now;
+  const h=String(Math.floor(diff/3_600_000)).padStart(2,'0');
+  const m=String(Math.floor((diff%3_600_000)/60_000)).padStart(2,'0');
+  const s=String(Math.floor((diff%60_000)/1000)).padStart(2,'0');
+  E('countdown').textContent=`${h}:${m}:${s}`;
+}
+setInterval(updateCountdown, 1000);
+
+function selectTab(id){
+  [tabDaily, E('tabCustom')].forEach(t=>{ const on=t.dataset.target===id; t.setAttribute('aria-selected', on?'true':'false'); });
+  [daily, custom].forEach(s=>{ s.setAttribute('aria-hidden', s.id===id ? 'false':'true'); });
+}
+E('tabDaily').addEventListener('click', ()=>selectTab('daily'));
+E('tabCustom').addEventListener('click', ()=>selectTab('custom'));
+
+E('makeLink').addEventListener('click', ()=>{
+  const raw=normalizeHeb(secretInput.value);
+  if (raw.length<3 || raw.length>10){ toast('3–10'); return; }
+  if (!/^[א-תךםןףץ]+$/.test(raw)){ toast('עברית'); return; }
+  const url=`${baseURL}#custom=${encodeURIComponent(raw)}`;
+  E('linkOut').innerHTML='';
+  const a=document.createElement('a'); a.href=url; a.textContent='פתח'; a.className='btn';
+  const b=document.createElement('button'); b.textContent='העתק'; b.className='btn'; b.onclick=async()=>{ try{ await navigator.clipboard.writeText(url); toast('הועתק'); }catch(e){} };
+  E('linkOut').append(a,b);
+});
+function maybeLoadCustomFromHash(){
+  const m=location.hash.match(/#custom=([^&]+)/);
+  if (!m) return;
+  const secret=decodeURIComponent(m[1]);
+  if (!/^[א-תךםןףץ]{3,10}$/.test(secret)) return;
+  selectTab('custom'); startCustomGame(secret);
+}
+function startCustomGame(secret){
+  E('customBoard').innerHTML=''; E('customKbd').innerHTML=''; E('linkOut').innerHTML='';
+  Game({boardEl: E('customBoard'), kbdEl: E('customKbd'), answer:secret, mode:'custom', shareEl:linkOut});
+}
+window.addEventListener('hashchange', maybeLoadCustomFromHash);
+
+document.getElementById('year').textContent = new Date().getFullYear();
+function init(){ initDaily(); maybeLoadCustomFromHash(); }
+function ready(fn){ if (document.readyState!='loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+ready(init);
+</script>
+</body>
+</html>
